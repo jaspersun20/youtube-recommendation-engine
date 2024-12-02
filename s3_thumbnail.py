@@ -7,7 +7,7 @@ import os
 # Constants
 CSV_FILE_PATH = 'ml-32m/ml-youtube.csv'
 BUCKET_NAME = 'movies-yitian'
-THUMBNAILS_FOLDER = 'movies/111'
+THUMBNAILS_FOLDER = 'movies/thumbnails'
 AWS_REGION = 'us-east-2'
 # Boto3 S3 client setup
 s3_client = boto3.client('s3', region_name=AWS_REGION)
@@ -38,6 +38,7 @@ def main():
     video_ids = read_csv(CSV_FILE_PATH)
     for video_id in video_ids:
         fetch_and_upload_thumbnail(video_id)
+        time.sleep(1)  # Sleep to avoid overwhelming the YouTube server
 
 
 if __name__ == '__main__':
