@@ -2,7 +2,7 @@ import requests
 
 # TMDb and OMDb API keys
 tmdb_api_key = "b8792d13412713da445d0d478ea34150"
-omdb_api_key = "8c48edc4"
+omdb_api_key = "6145e2e1"
 
 # Example IMDb and TMDb IDs for movies 1 and 2
 movies = [

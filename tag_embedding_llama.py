@@ -1,47 +1,38 @@
 import pandas as pd
 import requests
+import numpy as np
 
-# Load tags data
-tags_df = pd.read_csv('ml-32m/tags.csv')
+# =============== CONFIG ==================
+INPUT_CSV = "ml-32m/tags.csv"
+FIRST_5_FILE = "first_5.csv"
+ALL_FILE = "all_embeddings.csv"
 
-# Your Gemini API key
-gemini_api_key = "1031273837835-0t872n1vo9s9mat1kgh1g1lu2ikvbra2.apps.googleusercontent.com"
-
-
-# Function to generate embeddings for a tag using Gemini API
-def get_tag_embedding(tag):
-    if not isinstance(tag, str):
-        tag = ""
-
-    # Make API request to Gemini
-    url = "https://ai.google.dev/gemini-api/embeddings"
-    headers = {"Authorization": f"Bearer {gemini_api_key}"}
-    data = {"text": tag, "model": "gemini-text-embedding"}
-
-    response = requests.post(url, headers=headers, json=data)
-
-    if response.status_code == 200:
-        return response.json()["embedding"]  # Return the embedding array
-    else:
-        print(f"Error fetching embedding for tag '{tag}': {response.status_code} {response.text}")
-        return [0] * 32  # Return a zero vector if API call fails
+GEMINI_API_KEY = "YOUR_REAL_ACCESS_TOKEN"
+GEMINI_URL = "https://ai.google.dev/gemini-api/embeddings"
 
 
-# Process tags in real time and append to the file
-output_file = "tags_with_embeddings_gemini.csv"
-with open(output_file, "w") as f:
-    # Write the header
-    f.write("userId,movieId,tag,timestamp,embedding\n")
+# ========================================
 
-    for _, row in tags_df.iterrows():
-        try:
-            # Generate embedding for the tag
-            tag_embedding = get_tag_embedding(row["tag"])
 
-            # Convert embedding to CSV format
-            embedding_str = ",".join(map(str, tag_embedding))
+def get_gemini_embedding(text):
+    """Calls Gemini API for text embeddings."""
+    if not isinstance(text, str) or text.strip() == "":
+        return [0.0] * 512  # Return zero-vector if text is invalid
 
-            # Write the row with embedding
-            f.write(f"{row['userId']},{row['movieId']},{row['tag']},{row['timestamp']},{embedding_str}\n")
-        except Exception as e:
-            print(f"Error processing tag: {row['tag']}, skipping. Error: {e}")
+    headers = {"Authorization": f"Bearer {GEMINI_API_KEY}"}
+    payload = {"text": text, "model": "gemini-text-embedding"}
+
+    try:
+        resp = requests.post(GEMINI_URL, json=payload, headers=headers)
+        if resp.status_code == 200:
+            data = resp.json()
+            emb = data.get("embedding", [])
+            if not emb:
+                return [0.0] * 512  # Return zero-vector if embedding is empty
+            return emb[:512] + [0.0] * (512 - len(emb))  # Pad/truncate to 512
+        else:
+            print(f"[ERROR] {resp.status_code}: {resp.text}")
+            return [0.0] * 512
+    except Exception as e:
+        print(f"[EXCEPTION] {e}")
+        retur
