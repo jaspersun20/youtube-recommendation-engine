@@ -6,29 +6,6 @@ import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 
 
-def csv_to_parquet(
-        csv_input="user_movie_training_dataset.csv",
-        parquet_output="user_movie_training_dataset.parquet"
-):
-    """
-    Reads the CSV (which has columns:
-      userId,
-      avg_user_tag (32D string),
-      user_like_genre (32D string, if you want to use it),
-      imdb (float),
-      movie_genre_embedding (32D string),
-      yes/no (label)
-    and saves it as a Parquet file.
-    """
-    df = pd.read_csv(csv_input)
-    # Just to confirm: the CSV has "yes/no" column. We'll keep it.
-    # Then we'll parse it in our Dataset later.
-
-    df.to_parquet(parquet_output, index=False)
-    print(f"[INFO] Wrote Parquet: {parquet_output} (rows={len(df)})")
-
-
-
 class MovieLensDataset(Dataset):
     def __init__(self, parquet_path):
         """
@@ -79,15 +56,16 @@ class MovieLensDataset(Dataset):
 
 
 class UserTower(nn.Module):
-    def __init__(self, user_dim=32, hidden_dim=64):
+    def __init__(self, user_dim=64, hidden_dim=64):
         """
         We'll feed in a 32D user vector -> hidden -> hidden -> user embedding
+        add separate dimension for output dimension
         """
         super(UserTower, self).__init__()
         self.fc = nn.Sequential(
             nn.Linear(user_dim, hidden_dim),
             nn.ReLU(),
-            nn.Linear(hidden_dim, hidden_dim),
+            nn.Linear(hidden_dim, hidden_dim), # add another hidden layer variable as output dim
             nn.ReLU()
         )
 
@@ -182,6 +160,7 @@ def train_two_tower(
             loss.backward()
             optimizer.step()
 
+            # [set beak point]
             epoch_loss += loss.item()
 
         avg_loss = epoch_loss / len(dataloader)
@@ -197,14 +176,11 @@ def train_two_tower(
 
 if __name__ == "__main__":
     csv_input = "user_movie_training_dataset.csv"
-    parquet_output = "user_movie_training_dataset.parquet"
 
-    # 1) Convert CSV => Parquet
-    csv_to_parquet(csv_input, parquet_output)
 
     # 2) Train the two-tower model
     final_model = train_two_tower(
-        parquet_path=parquet_output,
+        parquet_path="user_movie_training_dataset.parquet",
         user_dim=32,
         genre_dim=32,
         hidden_dim=64,
